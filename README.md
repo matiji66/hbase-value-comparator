@@ -5,6 +5,7 @@
 
 先编辑一个文件命名为CustomComparatorProtos.proto 
 具体内容如下： 
+
 /** 
 * Licensed to the Apache Software Foundation (ASF) under one 
 * or more contributor license agreements. See the NOTICE file 
@@ -54,7 +55,12 @@ protoc –java_out=D:\proto CustomNumberComparator.proto
 
 
 4.选中这两个java文件右击export 输出为jar文件 
-上传到hbase的lib目录下面，重启hbase，在hbase shell中引入以下 java包
+
+上传到hbase的lib目录下面，比如 CDH集群的话copy到/data/cloudera/parcels/CDH-5.12.0-1.cdh5.12.0.p0.29/lib/hbase/lib目录下面
+
+重启hbase 
+
+在hbase shell中引入以下 java包
 
 import org.apache.hadoop.hbase.filter.CompareFilter 
 import org.apache.hadoop.hbase.filter.SingleColumnValueFilter 
