@@ -2,17 +2,20 @@ package com.pateo.bean;
 
 public class User {
 
-	String userid ;
+	String userId ;
 	String name ;
 	Double age;
 	public User() {
 	}
-	public String getUserid() {
-		return userid;
+	
+	public String getUserId() {
+		return userId;
 	}
-	public void setUserid(String userid) {
-		this.userid = userid;
+
+	public void setUserId(String userId) {
+		this.userId = userId;
 	}
+
 	public String getName() {
 		return name;
 	}
@@ -29,7 +32,7 @@ public class User {
 	}
 	@Override
 	public String toString() {
-		return "User [userid=" + userid + ", name=" + name + ", age=" + age
+		return "User [userId=" + userId + ", name=" + name + ", age=" + age
 				+ "]";
 	}
 	

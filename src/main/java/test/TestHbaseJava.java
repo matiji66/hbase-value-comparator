@@ -2,11 +2,8 @@ package test;
 
 import java.io.IOException;
 import java.util.Iterator;
-import java.util.List;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.Cell;
-import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.HTableDescriptor;
@@ -28,7 +25,7 @@ import org.apache.hadoop.hbase.filter.SingleColumnValueFilter;
 import org.apache.hadoop.hbase.util.Bytes;
 
 import com.pateo.bean.User;
-import com.pateo.bean.util.UserParser;
+import com.pateo.bean.util.ParserUtils;
 import com.pateo.hbase.defined.comparator.CustomNumberComparator;
 
 /**
@@ -133,25 +130,16 @@ public class TestHbaseJava {
 		try {
 			while (iterator.hasNext()) {
 				Result rs = iterator.next();
-				List<Cell> listCells = rs.listCells();
-				
-				for (Cell cell : listCells) {
-					String key = Bytes.toString(CellUtil.cloneRow(cell));
-					
-					String cloneFamily = Bytes.toString(CellUtil.cloneFamily(cell));
-					String cloneQualifier = Bytes.toString(CellUtil.cloneQualifier( cell));
-					String cloneValue = Bytes.toString(CellUtil.cloneValue(cell));
-					System.out.print("key:"+key + "==cloneFamily:" +cloneFamily +"==Qualifier:"+cloneQualifier+ "==value:"+cloneValue );
-					//user.setUserid(key);
-				}
 				User user = null;
 				try {
-					user = UserParser.parser(rs);
+					//user = UserParser.parser(rs,User.class);
+					user = (User)ParserUtils.<User>parser2Bean(rs, User.class,"userId");
 				} catch (Exception e) {
 					e.printStackTrace();
 				}
 				System.out.println(user);
 			}
+			
 		} finally {
 			// 确保scanner关闭
 			scanner.close();
@@ -161,10 +149,9 @@ public class TestHbaseJava {
 			table.close();
 		}
 		
-		// 
+		// test end and delete table 
 		// deleteTable(admin, userTable);
 		conn.close();
-		 
 	}
 
 	private static void getTest(Table table) throws IOException {
@@ -180,6 +167,7 @@ public class TestHbaseJava {
 	 * @param table
 	 * @throws IOException
 	 */
+	@SuppressWarnings("unused")
 	private static void deleteKey(Table table) throws IOException {
 		// 删除某条数据,操作方式与 Put 类似
 		Delete d = new Delete("id001".getBytes());
@@ -193,6 +181,7 @@ public class TestHbaseJava {
 	 * @param userTable
 	 * @throws IOException
 	 */
+	@SuppressWarnings("unused")
 	private static void deleteTable(Admin admin, TableName userTable)
 			throws IOException {
 		admin.disableTable(userTable);
@@ -236,3 +225,12 @@ public class TestHbaseJava {
 		}
 	}
 }
+
+//List<Cell> listCells = rs.listCells();
+//for (Cell cell : listCells) {
+//String key = Bytes.toString(CellUtil.cloneRow(cell));
+//String cloneFamily = Bytes.toString(CellUtil.cloneFamily(cell));
+//String cloneQualifier = Bytes.toString(CellUtil.cloneQualifier( cell));
+//String cloneValue = Bytes.toString(CellUtil.cloneValue(cell));
+////System.out.print("key:"+key + "==cloneFamily:" +cloneFamily +"==Qualifier:"+cloneQualifier+ "==value:"+cloneValue );
+//}
