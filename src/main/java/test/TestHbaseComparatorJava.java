@@ -25,7 +25,7 @@ import org.apache.hadoop.hbase.filter.SingleColumnValueFilter;
 import org.apache.hadoop.hbase.util.Bytes;
 
 import com.pateo.bean.User;
-import com.pateo.bean.util.ParserUtils;
+import com.pateo.bean.util.HbaseBeanUtils;
 import com.pateo.hbase.defined.comparator.CustomNumberComparator;
 
 /**
@@ -38,7 +38,7 @@ import com.pateo.hbase.defined.comparator.CustomNumberComparator;
  * @author matiji66 20171226
  * 
  */
-public class TestHbaseJava {
+public class TestHbaseComparatorJava {
 
 	static final byte[] family = Bytes.toBytes("f1");
 	static final byte[] col_name = Bytes.toBytes("name");
@@ -133,11 +133,13 @@ public class TestHbaseJava {
 				User user = null;
 				try {
 					//user = UserParser.parser(rs,User.class);
-					user = (User)ParserUtils.<User>parser2Bean(rs, User.class,"userId");
+					user = (User)HbaseBeanUtils.<User>parser2Bean(rs, User.class,"userId");
 				} catch (Exception e) {
 					e.printStackTrace();
 				}
 				System.out.println(user);
+				
+				Put bean2Put = HbaseBeanUtils.<User>bean2Put(user, user.getUserId(), "f1");
 			}
 			
 		} finally {

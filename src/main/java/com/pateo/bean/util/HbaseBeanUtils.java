@@ -7,6 +7,7 @@ import java.util.List;
 
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellUtil;
+import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.util.Bytes;
 
@@ -14,12 +15,12 @@ import org.apache.hadoop.hbase.util.Bytes;
  * 
  * 解析工具,对代码进行抽取,避免bean类型的依赖,提高代码的通用性 如何优雅的反射出一个对象
  * 
- * @author sh04595
- *
+ * @author sh04595 20171220
+ * 
  * @param <T>
  *            Bean Type
  */
-public class ParserUtils<T> {
+public class HbaseBeanUtils<T> {
 
 	// private static final Field[] fields = User.class.getDeclaredFields();
 	// private static final String keyField = "userId";
@@ -27,6 +28,48 @@ public class ParserUtils<T> {
 	// private static final byte[] family = Bytes.toBytes("f1");
 	// private static final byte[] col_name = Bytes.toBytes("name");
 	// private static final byte[] col_age = Bytes.toBytes("age");
+
+//	public static void main(String[] args) {
+//		
+//		Object object = null;
+//		String aa = object+"";
+//		byte[] bytes = Bytes.toBytes(aa);
+//		String bb = Bytes.toString(bytes);
+//		System.out.println(bytes);
+//		System.out.println(bb);
+//	}
+	
+	/**
+	 * 此处 bean不能为null
+	 * @param bean
+	 * @param clazz
+	 * @param key
+	 * @param cfInfo
+	 * @return
+	 */
+	public static <T> Put bean2Put(T bean,  String key,String cfInfo) { /// Class<T> clazz,
+		final byte[] CF_INFO = Bytes.toBytes(cfInfo);
+		final Field[] fields = bean.getClass().getDeclaredFields();
+		Put put = new Put(Bytes.toBytes(key));
+		for (Field field : fields) {
+			String fieldName = field.getName();
+			String fieldValue = null;
+			try {
+				field.setAccessible(true);
+				Object object = field.get(bean);
+				if (object == null)  continue;
+				fieldValue = object.toString();
+			} catch (IllegalArgumentException e) {
+				e.printStackTrace();
+			} catch (IllegalAccessException e) {
+				e.printStackTrace();
+			}
+			if (fieldValue != null && fieldValue.length() > 0) {
+				put.addColumn(CF_INFO, Bytes.toBytes(fieldName), Bytes.toBytes(fieldValue));
+			}
+		}
+		return put;
+	}
 
 	/**
 	 * 优雅解析User，根据bean属性类型自动判断处理赋值问题
@@ -46,6 +89,7 @@ public class ParserUtils<T> {
 		List<Cell> listCells = rs.listCells();
 
 		T user = clazz.newInstance();
+		
 		// 遍历key对应的所有Cell
 		for (Cell cell : listCells) {
 			String key = Bytes.toString(CellUtil.cloneRow(cell));
@@ -57,7 +101,7 @@ public class ParserUtils<T> {
 			String cloneValue = Bytes.toString(CellUtil.cloneValue(cell)); // 列值
 
 			for (Field field : fields) { // 遍历所有的属性
-				//Object value = null;
+				// Object value = null;
 				String fieldName = field.getName();
 
 				// 处理key对应的属性
@@ -75,6 +119,7 @@ public class ParserUtils<T> {
 
 	/**
 	 * 根據具體的屬性進行處理
+	 * 
 	 * @param clazz
 	 * @param keyField
 	 * @param user
