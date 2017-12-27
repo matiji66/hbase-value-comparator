@@ -27,14 +27,19 @@ import org.apache.hadoop.hbase.filter.FilterList;
 import org.apache.hadoop.hbase.filter.SingleColumnValueFilter;
 import org.apache.hadoop.hbase.util.Bytes;
 
+import com.pateo.bean.User;
+import com.pateo.bean.util.UserParser;
 import com.pateo.hbase.defined.comparator.CustomNumberComparator;
 
 /**
+ *  自定义比较强参考实现
+ *   *  
+ *  列值为'', ' ' '+' 等会导致filter失败，应该是数值转换失败导致的
+ *  解决方案，在value comparator之前加上几个简单的过滤器，过滤掉这些脏数据就行了
+ *  用的32位protoc 2.5 编译出来的java文件，可能导致兼容性问题，类型只支持double类型进行过滤
+ *     
+ * @author matiji66 20171226
  * 
- * params :  -D mapreduce.job.maps=6 -D mapreduce.job.reduces=2 
- * 
- * @author matiji66
- *  TODO 列值为'', ' ' '+' 等会导致filter失败，应该是数值转换失败导致的 
  */
 public class TestHbaseJava {
 
@@ -69,7 +74,7 @@ public class TestHbaseJava {
 		Scan s = new Scan();
 		
 		FilterList filterList = new FilterList(); 
-		// 过滤 "" ,否则会出错
+		//1. 过滤 "" ,否则会出错
 		SingleColumnValueFilter nullFilter = new SingleColumnValueFilter( 
 		family, 
 		col_age, 
@@ -77,14 +82,32 @@ public class TestHbaseJava {
 		new BinaryComparator(Bytes.toBytes("")) 
 		);
 		filterList.addFilter(nullFilter);
-
+		
+		//2. 过滤 "*-+；：" 等脏数据
+		SingleColumnValueFilter ileague_0 = new SingleColumnValueFilter( 
+		family, 
+		col_age, 
+		CompareFilter.CompareOp.GREATER_OR_EQUAL, 
+		new BinaryComparator(Bytes.toBytes("0")) 
+		);		
+		filterList.addFilter(ileague_0);
+		SingleColumnValueFilter ileague_9 = new SingleColumnValueFilter( 
+				family, 
+				col_age, 
+				CompareFilter.CompareOp.LESS_OR_EQUAL, 
+				new BinaryComparator(Bytes.toBytes("9")) 
+				);		
+		filterList.addFilter(ileague_9);
+		
+		//3. 真正的value filter 开始了
+		// 过滤出年龄大于 5 小于80 的user 
 		SingleColumnValueFilter low_bound = new SingleColumnValueFilter(  
-		            family,   
-		            col_age,   
-		            CompareFilter.CompareOp.GREATER,   
-		            new CustomNumberComparator(Bytes.toBytes(5.0),"double" ) // 18.0 注意是小数才行
+	            family,   
+	            col_age,   
+	            CompareFilter.CompareOp.GREATER,   
+	            new CustomNumberComparator(Bytes.toBytes(5.),"double" ) // 18.0 注意是小数才行，否则报错
 		// new CustomNumberComparator(Bytes.toBytes(18),"int" ) // 支持性不好 
-		// new CustomNumberComparator(Bytes.toBytes(18.0),"float" ) // 支持性不好 
+		// new CustomNumberComparator(Bytes.toBytes(18.0),"float" ) // 支持性不好 估计是因为版本兼容问题，用的protoc 2.5 32位编译出来的java文件
 		); 
 		filterList.addFilter(low_bound); 
 		
@@ -97,6 +120,7 @@ public class TestHbaseJava {
 		// new CustomNumberComparator(Bytes.toBytes(18.0),"float" ) // 支持性不好 
 		); 
 		filterList.addFilter(up_bound); 
+		
 		s.setFilter(filterList);
 		
 		s.addColumn(family, col_name);
@@ -110,14 +134,23 @@ public class TestHbaseJava {
 			while (iterator.hasNext()) {
 				Result rs = iterator.next();
 				List<Cell> listCells = rs.listCells();
+				
 				for (Cell cell : listCells) {
 					String key = Bytes.toString(CellUtil.cloneRow(cell));
+					
 					String cloneFamily = Bytes.toString(CellUtil.cloneFamily(cell));
 					String cloneQualifier = Bytes.toString(CellUtil.cloneQualifier( cell));
 					String cloneValue = Bytes.toString(CellUtil.cloneValue(cell));
-					System.out.println("key:"+key + "==cloneFamily:" +cloneFamily +"==Qualifier:"+cloneQualifier+ "==Value:"+cloneValue );
+					System.out.print("key:"+key + "==cloneFamily:" +cloneFamily +"==Qualifier:"+cloneQualifier+ "==value:"+cloneValue );
+					//user.setUserid(key);
 				}
-				
+				User user = null;
+				try {
+					user = UserParser.parser(rs);
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+				System.out.println(user);
 			}
 		} finally {
 			// 确保scanner关闭
@@ -142,6 +175,11 @@ public class TestHbaseJava {
 		System.out.println("GET user0 :" + value);
 	}
 
+	/**
+	 * 测试删除数据
+	 * @param table
+	 * @throws IOException
+	 */
 	private static void deleteKey(Table table) throws IOException {
 		// 删除某条数据,操作方式与 Put 类似
 		Delete d = new Delete("id001".getBytes());
@@ -149,17 +187,28 @@ public class TestHbaseJava {
 		table.delete(d);
 	}
 
+	/**
+	 * 测试完 之后删除表
+	 * @param admin
+	 * @param userTable
+	 * @throws IOException
+	 */
 	private static void deleteTable(Admin admin, TableName userTable)
 			throws IOException {
 		admin.disableTable(userTable);
 		 admin.deleteTable(userTable);
 	}
 
+	/**
+	 * 如果表不存在将创建新表
+	 * @param admin
+	 * @param userTable
+	 * @throws IOException
+	 */
 	private static void createTable(Admin admin, TableName userTable)
 			throws IOException {
 		// 创建 user 表
 		 HTableDescriptor tableDescr = new HTableDescriptor(userTable);
-		 
 		 tableDescr.addFamily(new HColumnDescriptor(family));
 		 System.out.println("Creating table `user` ============ ");
 		 if (!admin.tableExists(userTable)) {
@@ -168,9 +217,14 @@ public class TestHbaseJava {
 		System.out.println("create table Done!");
 	}
 
+	/**
+	 * 制造一些脏数据
+	 * @param table
+	 * @throws IOException
+	 */
 	private static void inserData(Table table) throws IOException {
 	
-		String[] values = new  String[] {"100","80","20","2","2.0","12.5"};
+		String[] values = new  String[] {"100","80","20","2","2.0","12.5",""," ","+",";","；"};
 		for (int i = 0; i < values.length; i++) {
 			// 准备插入几条 score不同的数据
 			Put p = new Put(("user"+i).getBytes());

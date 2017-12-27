@@ -78,4 +78,4 @@ scan 'student',{COLUMNS =>'score:chinese',FILTER=>SingleColumnValueFilter.new(By
 5. java 代码测试参考 test.TestHbaseJava
 
 
-注意事项：列值为'', ' ' '+' 等会导致filter失败，应该是数值转换失败导致的 
+注意事项：列值为'', ' ' '+' 等会导致filter失败，应该是数值转换失败导致的,可以考虑在CustomNumberComparator得compare方法中，进行相应的处理，避免parse value出错。
