@@ -1,4 +1,8 @@
-这个自定义的Comparator也是看了好多资料.
+这个自定义的Comparator也是看了好多资料，总结一下全部流程，（还是csdn 1800+的阅读给了我动力，重新弄了一遍，很顺利）。
+
+使用场景描述下，hbase列值比较器是采用alpha字母表进行比较的这就导致想要对某些列进行数值过滤比较坑，比如2.0会比100大。
+该CustomNumberComparator需要结合过滤器进行使用，本项目结合SingleColumnValueFilter进行列值过滤，其他过滤器没有测试。
+
 此处是基于cdh-hbase1.2.0 分享自定义hbase filter全过程(此处的Comparator是针对SingleColumnFilter进行测试的,其他的过滤器并没具体测试)。
 
 1.制作 CustomComparatorProtos.proto文件

@@ -21,9 +21,8 @@ public class CustomNumberComparator extends ByteArrayComparable {
 
 	/**
 	 * Constructor
-	 * 
 	 * @param value
-	 *            value
+	 * @param fieldType
 	 */
 	public CustomNumberComparator(byte[] value, String fieldType) {
 		super(value);

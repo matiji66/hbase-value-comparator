@@ -67,15 +67,16 @@ public class TestHbaseJava {
 		// 扫描数据
 		System.out.println("====scan start ======");
 		Scan s = new Scan();
+		
 		FilterList filterList = new FilterList(); 
-//		SingleColumnValueFilter nullFilter = new SingleColumnValueFilter( 
-//		family, 
-//		col_age, 
-//		CompareFilter.CompareOp.NOT_EQUAL, 
-//		new BinaryComparator(Bytes.toBytes("")) 
-//		);
-//		
-//		filterList.addFilter(nullFilter);
+		// 过滤 "" ,否则会出错
+		SingleColumnValueFilter nullFilter = new SingleColumnValueFilter( 
+		family, 
+		col_age, 
+		CompareFilter.CompareOp.NOT_EQUAL, 
+		new BinaryComparator(Bytes.toBytes("")) 
+		);
+		filterList.addFilter(nullFilter);
 
 		SingleColumnValueFilter low_bound = new SingleColumnValueFilter(  
 		            family,   
